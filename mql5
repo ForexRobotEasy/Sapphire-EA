@@ -1,0 +1,104 @@
+
+//+------------------------------------------------------------------+
+//|                                              Sapphire EA.mq5      |
+//|                             Copyright 2022, Forex Robot Easy Team |
+//|                                             https://forexroboteasy.com |
+//+------------------------------------------------------------------+
+
+// Define constants
+#define MAX_RISK_PERCENT 2       // Maximum risk percentage per trade
+#define STOP_LOSS_PERCENT 1     // Stop loss percentage
+#define TAKE_PROFIT_PERCENT 2   // Take profit percentage
+
+// Define global variables
+double AccountBalance;
+double LotSize;
+
+//+------------------------------------------------------------------+
+//| Custom initialization function                                    |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+    // Get account balance
+    AccountBalance = AccountInfoDouble(ACCOUNT_BALANCE);
+
+    // Calculate lot size based on account balance and risk percentage
+    LotSize = (AccountBalance * MAX_RISK_PERCENT) / 100;
+
+    // Set stop loss and take profit levels
+    double StopLoss = NormalizeDouble(SymbolInfoDouble(Symbol(), SYMBOL_BID) - (SymbolInfoDouble(Symbol(), SYMBOL_POINT) * STOP_LOSS_PERCENT), SymbolInfoInteger(Symbol(), SYMBOL_DIGITS));
+    double TakeProfit = NormalizeDouble(SymbolInfoDouble(Symbol(), SYMBOL_BID) + (SymbolInfoDouble(Symbol(), SYMBOL_POINT) * TAKE_PROFIT_PERCENT), SymbolInfoInteger(Symbol(), SYMBOL_DIGITS));
+
+    // Set stop loss and take profit levels for all open positions
+    for (int i = 0; i < PositionsTotal(); i++)
+    {
+        if (PositionSelectByIndex(i) == true)
+        {
+            PositionSetDouble(POSITION_STOPLOSS, StopLoss);
+            PositionSetDouble(POSITION_TAKEPROFIT, TakeProfit);
+        }
+    }
+
+    return INIT_SUCCEEDED;
+}
+
+//+------------------------------------------------------------------+
+//| Custom trading function                                          |
+//+------------------------------------------------------------------+
+void Trade()
+{
+    // Perform AI analysis and generate trading signals
+    double signal = AIAnalysis();
+
+    // Check if a buy signal is generated
+    if (signal > 0)
+    {
+        // Execute buy order
+        OrderSend(Symbol(), OP_BUY, LotSize, SymbolInfoDouble(Symbol(), SYMBOL_ASK), 0, 0, 0, 'Buy Order', 0, 0, Green);
+    }
+    // Check if a sell signal is generated
+    else if (signal < 0)
+    {
+        // Execute sell order
+        OrderSend(Symbol(), OP_SELL, LotSize, SymbolInfoDouble(Symbol(), SYMBOL_BID), 0, 0, 0, 'Sell Order', 0, 0, Red);
+    }
+}
+
+//+------------------------------------------------------------------+
+//| Custom function for AI analysis                                   |
+//+------------------------------------------------------------------+
+double AIAnalysis()
+{
+    // Implement AI analysis logic here
+    // This function should analyze past signals and generate new trading signals
+    // Ensure the AI model blends new inputs with past results to produce accurate trading signals
+    
+    // Sample logic: generate random trading signal
+    double signal = MathRand() % 3 - 1;
+
+    return signal;
+}
+
+//+------------------------------------------------------------------+
+//| Custom tick event function                                       |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+    // Call trading function
+    Trade();
+}
+
+//+------------------------------------------------------------------+
+//| Custom deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+    // Close all open positions
+    for (int i = 0; i < PositionsTotal(); i++)
+    {
+        if (PositionSelectByIndex(i) == true)
+        {
+            PositionClose(PositionGetTicket());
+        }
+    }
+}
